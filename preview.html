@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G-Code Hangman</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+
+        /* --- Main area --- */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f5f5f5;
+            position: relative;
+            gap: 40px;
+        }
+
+        /* --- Canvas for hangman drawing --- */
+        #hangmanCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* --- Word display --- */
+        .word-row {
+            display: flex;
+            gap: 12px;
+            z-index: 2;
+        }
+        .word-box {
+            width: 70px;
+            height: 80px;
+            border-bottom: 4px solid #aaa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            position: relative;
+            background: transparent;
+        }
+        .word-box.revealed {
+            border-color: #6aaa64;
+            color: #333;
+        }
+        .word-box.reveal-anim {
+            animation: revealLetter 0.5s ease-out;
+        }
+        @keyframes revealLetter {
+            0%   { transform: scale(0.3) rotateX(90deg); opacity: 0; }
+            60%  { transform: scale(1.15) rotateX(0deg); opacity: 1; }
+            100% { transform: scale(1) rotateX(0deg); opacity: 1; }
+        }
+
+        /* --- Wrong letters --- */
+        .wrong-row {
+            display: flex;
+            gap: 10px;
+            z-index: 2;
+        }
+        .wrong-letter {
+            width: 38px;
+            height: 38px;
+            border: 2px solid #cc3333;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #cc3333;
+            text-transform: uppercase;
+            animation: popIn 0.3s ease-out;
+        }
+        @keyframes popIn {
+            0%   { transform: scale(0); }
+            70%  { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        /* --- Status message --- */
+        .status-msg {
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            z-index: 2;
+            min-height: 24px;
+        }
+        .status-msg.win { color: #6aaa64; }
+        .status-msg.lose { color: #cc3333; }
+
+        /* --- Settings sidebar --- */
+        .sidebar {
+            width: 220px;
+            min-width: 220px;
+            background: #fff;
+            border-left: 1px solid #ddd;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 13px;
+            font-weight: normal;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .setting {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .setting label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .setting .row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .setting input[type="range"] {
+            flex: 1;
+        }
+        .setting .val {
+            font-size: 12px;
+            color: #555;
+            min-width: 30px;
+            text-align: right;
+        }
+        .sidebar .section-title {
+            font-size: 10px;
+            color: #bbb;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 6px;
+        }
+        .sidebar .info {
+            font-size: 10px;
+            color: #ccc;
+            margin-top: auto;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="main" id="mainArea">
+        <canvas id="hangmanCanvas"></canvas>
+
+        <div class="word-row" id="wordRow"></div>
+
+        <div class="wrong-row" id="wrongRow"></div>
+
+        <div class="status-msg" id="statusMsg"></div>
+    </div>
+
+    <div class="sidebar">
+        <h2>Settings</h2>
+
+        <div class="setting">
+            <label>Scale</label>
+            <div class="row">
+                <input type="range" id="scaleSlider" min="3" max="30" value="12">
+                <span class="val" id="scaleValue">12</span>
+            </div>
+        </div>
+
+        <div class="setting">
+            <label>Line length</label>
+            <div class="row">
+                <input type="range" id="lineLengthSlider" min="50" max="500" value="300">
+                <span class="val" id="lineLengthValue">300</span>
+            </div>
+        </div>
+
+        <div class="setting">
+            <label>Line spacing</label>
+            <div class="row">
+                <input type="range" id="spacingSlider" min="1" max="30" value="10">
+                <span class="val" id="spacingValue">10</span>
+            </div>
+        </div>
+
+        <div class="setting">
+            <label>Char padding</label>
+            <div class="row">
+                <input type="range" id="paddingSlider" min="0" max="15" value="3">
+                <span class="val" id="paddingValue">3</span>
+            </div>
+        </div>
+
+        <div class="section-title">Position</div>
+
+        <div class="setting">
+            <label>Offset X</label>
+            <div class="row">
+                <input type="range" id="offsetXSlider" min="0" max="200" value="25">
+                <span class="val" id="offsetXValue">25</span>
+            </div>
+        </div>
+
+        <div class="setting">
+            <label>Offset Y</label>
+            <div class="row">
+                <input type="range" id="offsetYSlider" min="0" max="400" value="200">
+                <span class="val" id="offsetYValue">200</span>
+            </div>
+        </div>
+
+        <div class="info">Type letters to guess the word.<br>Each wrong guess draws the hangman.</div>
+    </div>
+
+    <script>
+        /* ===== GAME STATE ===== */
+        const TARGET_WORD = 'TEST';
+        const WORD_LENGTH = TARGET_WORD.length;
+        const MAX_WRONG = 6; // head, body, L-arm, R-arm, L-leg, R-leg
+
+        let guessed = new Set();   // all guessed letters
+        let wrongList = [];        // ordered wrong guesses
+        let revealed = new Array(WORD_LENGTH).fill(false);
+        let wrongCount = 0;
+        let locked = false;
+        let gameOver = false;
+
+        const wordRow   = document.getElementById('wordRow');
+        const wrongRow  = document.getElementById('wrongRow');
+        const statusMsg = document.getElementById('statusMsg');
+
+        /* ===== BUILD WORD BOXES ===== */
+        for (let i = 0; i < WORD_LENGTH; i++) {
+            const box = document.createElement('div');
+            box.className = 'word-box';
+            box.id = `wbox-${i}`;
+            box.innerHTML = '<span style="visibility:hidden">_</span>';
+            wordRow.appendChild(box);
+        }
+
+        /* ===== HANGMAN CANVAS ===== */
+        const canvas = document.getElementById('hangmanCanvas');
+        const ctx = canvas.getContext('2d');
+        const mainArea = document.getElementById('mainArea');
+
+        function resizeCanvas() {
+            canvas.width  = mainArea.clientWidth;
+            canvas.height = mainArea.clientHeight;
+            drawHangman();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // Gallows geometry (relative to canvas center)
+        function getGallowsRect() {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2 - 30;
+            const w  = 180;
+            const h  = 200;
+            return { cx, cy, w, h, left: cx - w / 2, top: cy - h / 2 };
+        }
+
+        function drawGallows() {
+            const { cx, cy, w, h, left, top } = getGallowsRect();
+            ctx.strokeStyle = '#aaa';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            // Base
+            ctx.beginPath();
+            ctx.moveTo(left, top + h);
+            ctx.lineTo(left + w, top + h);
+            ctx.stroke();
+
+            // Vertical pole
+            ctx.beginPath();
+            ctx.moveTo(left + 30, top + h);
+            ctx.lineTo(left + 30, top);
+            ctx.stroke();
+
+            // Horizontal beam
+            ctx.beginPath();
+            ctx.moveTo(left + 30, top);
+            ctx.lineTo(cx + 20, top);
+            ctx.stroke();
+
+            // Rope
+            ctx.beginPath();
+            ctx.moveTo(cx + 20, top);
+            ctx.lineTo(cx + 20, top + 30);
+            ctx.stroke();
+        }
+
+        // Hangman body parts — each is a function that draws one part
+        const bodyParts = [
+            // 0: Head
+            (ctx, cx, top) => {
+                ctx.beginPath();
+                ctx.arc(cx + 20, top + 45, 15, 0, Math.PI * 2);
+                ctx.stroke();
+            },
+            // 1: Body
+            (ctx, cx, top) => {
+                ctx.beginPath();
+                ctx.moveTo(cx + 20, top + 60);
+                ctx.lineTo(cx + 20, top + 120);
+                ctx.stroke();
+            },
+            // 2: Left arm
+            (ctx, cx, top) => {
+                ctx.beginPath();
+                ctx.moveTo(cx + 20, top + 75);
+                ctx.lineTo(cx - 10, top + 105);
+                ctx.stroke();
+            },
+            // 3: Right arm
+            (ctx, cx, top) => {
+                ctx.beginPath();
+                ctx.moveTo(cx + 20, top + 75);
+                ctx.lineTo(cx + 50, top + 105);
+                ctx.stroke();
+            },
+            // 4: Left leg
+            (ctx, cx, top) => {
+                ctx.beginPath();
+                ctx.moveTo(cx + 20, top + 120);
+                ctx.lineTo(cx - 5, top + 160);
+                ctx.stroke();
+            },
+            // 5: Right leg
+            (ctx, cx, top) => {
+                ctx.beginPath();
+                ctx.moveTo(cx + 20, top + 120);
+                ctx.lineTo(cx + 45, top + 160);
+                ctx.stroke();
+            },
+        ];
+
+        // Animated draw of a single body part
+        function animateBodyPart(partIndex) {
+            const { cx, top } = getGallowsRect();
+            const draw = bodyParts[partIndex];
+
+            // Simple "grow" animation: draw line progressively
+            let progress = 0;
+            const duration = 400; // ms
+            const startTime = performance.now();
+
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            function step(now) {
+                progress = Math.min((now - startTime) / duration, 1);
+                // Redraw everything up to current progress
+                drawHangman();
+                // Draw the current part with partial progress
+                ctx.save();
+                ctx.globalAlpha = progress;
+                draw(ctx, cx, top);
+                ctx.restore();
+
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        function drawHangman() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGallows();
+
+            const { cx, top } = getGallowsRect();
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            for (let i = 0; i < wrongCount; i++) {
+                bodyParts[i](ctx, cx, top);
+            }
+        }
+
+        /* ===== REVEAL LETTERS ===== */
+        function revealLetter(letter) {
+            const positions = [];
+            for (let i = 0; i < WORD_LENGTH; i++) {
+                if (TARGET_WORD[i] === letter && !revealed[i]) {
+                    positions.push(i);
+                }
+            }
+
+            // Animate each position with stagger
+            positions.forEach((pos, idx) => {
+                setTimeout(() => {
+                    const box = document.getElementById(`wbox-${pos}`);
+                    box.textContent = letter;
+                    box.classList.add('revealed', 'reveal-anim');
+                    revealed[pos] = true;
+                }, idx * 250);
+            });
+
+            return positions.length;
+        }
+
+        function checkWin() {
+            return revealed.every(Boolean);
+        }
+
+        /* ===== HANDLE GUESS ===== */
+        function handleGuess(letter) {
+            if (locked || gameOver) return;
+            letter = letter.toUpperCase();
+            if (!/^[A-Z]$/.test(letter)) return;
+            if (guessed.has(letter)) return;
+
+            guessed.add(letter);
+
+            if (TARGET_WORD.includes(letter)) {
+                // Correct — reveal all instances with animation
+                locked = true;
+                const count = revealLetter(letter);
+                const delay = count * 250 + 100;
+
+                setTimeout(() => {
+                    if (checkWin()) {
+                        gameOver = true;
+                        statusMsg.textContent = 'You win!';
+                        statusMsg.className = 'status-msg win';
+                    }
+                    locked = false;
+                }, delay);
+            } else {
+                // Wrong — draw next body part
+                wrongList.push(letter);
+                wrongCount++;
+
+                // Show in wrong row
+                const span = document.createElement('div');
+                span.className = 'wrong-letter';
+                span.textContent = letter;
+                wrongRow.appendChild(span);
+
+                // Animate the body part
+                animateBodyPart(wrongCount - 1);
+
+                if (wrongCount >= MAX_WRONG) {
+                    gameOver = true;
+                    locked = true;
+                    statusMsg.textContent = 'Game over!';
+                    statusMsg.className = 'status-msg lose';
+                    // Reveal the word
+                    for (let i = 0; i < WORD_LENGTH; i++) {
+                        if (!revealed[i]) {
+                            const box = document.getElementById(`wbox-${i}`);
+                            box.textContent = TARGET_WORD[i];
+                            box.style.color = '#cc3333';
+                        }
+                    }
+                }
+            }
+        }
+
+        /* ===== KEYBOARD INPUT ===== */
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' || e.key === 'Enter') return;
+            if (/^[a-zA-Z]$/.test(e.key)) {
+                handleGuess(e.key);
+            }
+        });
+
+        /* ===== INIT ===== */
+        resizeCanvas();
+    </script>
+</body>
+</html>
