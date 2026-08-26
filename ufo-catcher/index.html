@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UFO Catcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            min-height: 100vh;
+            display: flex;
+            background: #f5f5f5;
+            color: #333;
+            overflow: hidden;
+        }
+
+        /* --- Main area (center) --- */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+        }
+
+        h1 {
+            font-size: 18px;
+            font-weight: normal;
+            color: #222;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+        }
+
+        /* --- Direction pad container --- */
+        .dpad {
+            position: relative;
+            width: 260px;
+            height: 260px;
+        }
+
+        /* --- Individual arrow buttons --- */
+        .arrow-btn {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border: 1.5px solid #ddd;
+            border-radius: 12px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.08s ease-out;
+            user-select: none;
+        }
+
+        .arrow-btn svg {
+            width: 36px;
+            height: 36px;
+            fill: #ccc;
+            transition: fill 0.08s ease-out;
+        }
+
+        .arrow-btn.active {
+            border-color: #e94560;
+            background: #fff;
+            transform: scale(0.94);
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.15);
+        }
+
+        .arrow-btn.active svg {
+            fill: #e94560;
+        }
+
+        /* Positions: top, bottom, left, right */
+        .arrow-btn.up    { top: 0;   left: 50%; transform: translateX(-50%); }
+        .arrow-btn.down  { bottom: 0; left: 50%; transform: translateX(-50%); }
+        .arrow-btn.left  { top: 50%; left: 0;   transform: translateY(-50%); }
+        .arrow-btn.right { top: 50%; right: 0;  transform: translateY(-50%); }
+
+        .arrow-btn.up.active    { transform: translateX(-50%) scale(0.94); }
+        .arrow-btn.down.active  { transform: translateX(-50%) scale(0.94); }
+        .arrow-btn.left.active  { transform: translateY(-50%) scale(0.94); }
+        .arrow-btn.right.active { transform: translateY(-50%) scale(0.94); }
+
+        /* --- Center indicator --- */
+        .center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 1.5px solid #ddd;
+            border-radius: 50%;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .center .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: all 0.15s ease-out;
+        }
+
+        .center .dot.active {
+            background: #e94560;
+            box-shadow: 0 0 12px rgba(233, 69, 96, 0.4);
+        }
+
+        /* --- Key hints --- */
+        .hints {
+            display: flex;
+            gap: 30px;
+            font-size: 13px;
+            color: #444;
+            letter-spacing: 1px;
+        }
+
+        .hints span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hints .key {
+            display: inline-block;
+            padding: 2px 6px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #555;
+        }
+
+        /* --- Log panel --- */
+        .log-panel {
+            width: 260px;
+            min-height: 80px;
+            max-height: 120px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6;
+        }
+
+        .log-panel .entry {
+            display: flex;
+            gap: 8px;
+        }
+
+        .log-panel .entry .time {
+            color: #999;
+            min-width: 70px;
+        }
+
+        .log-panel .entry .dir {
+            color: #e94560;
+            text-transform: uppercase;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 10%;
+            min-width: 180px;
+            background: #fff;
+            border-left: 1px solid #e0e0e0;
+            padding: 20px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 12px;
+            font-weight: normal;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+
+        .setting {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .setting label {
+            font-size: 11px;
+            color: #444;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .setting input[type="text"],
+        .setting input[type="number"] {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #222;
+            background: #fafafa;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .setting input:focus {
+            border-color: #e94560;
+        }
+
+        .setting .range-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .setting input[type="range"] {
+            flex: 1;
+            accent-color: #e94560;
+        }
+
+        .setting .val {
+            font-size: 12px;
+            color: #333;
+            min-width: 28px;
+            text-align: right;
+        }
+
+        .setting .limits-grid {
+            display: grid;
+            grid-template-columns: auto 1fr 1fr;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .setting .limits-grid .axis-label {
+            font-size: 11px;
+            color: #555;
+            font-weight: bold;
+            width: 16px;
+            text-align: center;
+        }
+
+        .setting .limits-grid input {
+            width: 100%;
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #222;
+            background: #fafafa;
+            outline: none;
+        }
+
+        .setting .limits-grid input:focus {
+            border-color: #e94560;
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fafafa;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #333;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.15s;
+        }
+
+        .btn:hover {
+            border-color: #e94560;
+            color: #e94560;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn.primary {
+            background: #e94560;
+            border-color: #e94560;
+            color: #fff;
+        }
+
+        .btn.primary:hover {
+            background: #d63a54;
+            border-color: #d63a54;
+        }
+
+        .btn.success {
+            border-color: #6aaa64;
+            color: #6aaa64;
+        }
+
+        .btn.success:hover {
+            background: #6aaa64;
+            color: #fff;
+        }
+
+        .btn.full {
+            width: 100%;
+        }
+
+        /* --- Status indicator --- */
+        .status-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ddd;
+            margin-right: 4px;
+            vertical-align: middle;
+            transition: background 0.2s;
+        }
+
+        .status-dot.connected {
+            background: #6aaa64;
+        }
+
+        .status-dot.error {
+            background: #e94560;
+        }
+
+        .connection-status {
+            font-size: 11px;
+            color: #444;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== MAIN AREA ===== -->
+    <div class="main">
+        <h1>UFO Catcher</h1>
+
+        <div class="dpad" id="dpad">
+            <!-- Up -->
+            <div class="arrow-btn up" data-dir="up" id="btn-up">
+                <svg viewBox="0 0 24 24"><polygon points="12,4 22,18 2,18"/></svg>
+            </div>
+            <!-- Down -->
+            <div class="arrow-btn down" data-dir="down" id="btn-down">
+                <svg viewBox="0 0 24 24"><polygon points="12,20 2,6 22,6"/></svg>
+            </div>
+            <!-- Left -->
+            <div class="arrow-btn left" data-dir="left" id="btn-left">
+                <svg viewBox="0 0 24 24"><polygon points="4,12 18,2 18,22"/></svg>
+            </div>
+            <!-- Right -->
+            <div class="arrow-btn right" data-dir="right" id="btn-right">
+                <svg viewBox="0 0 24 24"><polygon points="20,12 2,2 2,22"/></svg>
+            </div>
+
+            <!-- Center dot -->
+            <div class="center">
+                <div class="dot" id="centerDot"></div>
+            </div>
+        </div>
+
+        <div class="hints">
+            <span><span class="key">W</span> / <span class="key">↑</span> Up</span>
+            <span><span class="key">A</span> / <span class="key">←</span> Left</span>
+            <span><span class="key">S</span> / <span class="key">↓</span> Down</span>
+            <span><span class="key">D</span> / <span class="key">→</span> Right</span>
+        </div>
+
+        <div class="log-panel" id="logPanel">
+            <div class="entry">
+                <span class="time">--:--:--</span>
+                <span>Waiting for input...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SIDEBAR ===== -->
+    <div class="sidebar">
+        <h2>Settings</h2>
+
+        <!-- Printer IP -->
+        <div class="setting">
+            <label>Printer IP</label>
+            <input type="text" id="printerIp" value="192.168.137.34" placeholder="e.g. 192.168.1.100">
+            <div class="connection-status">
+                <span class="status-dot" id="connectionDot"></span>
+                <span id="connectionLabel">Not connected</span>
+            </div>
+            <button class="btn full" id="btnTestConnection">Test Connection</button>
+        </div>
+
+        <!-- Area Limits -->
+        <div class="setting">
+            <label>Area Limits (mm)</label>
+            <div class="limits-grid">
+                <span class="axis-label">X</span>
+                <input type="number" id="limitXMin" value="-4.5" step="0.1">
+                <input type="number" id="limitXMax" value="235.1" step="0.1">
+                <span class="axis-label">Y</span>
+                <input type="number" id="limitYMin" value="0" step="0.1">
+                <input type="number" id="limitYMax" value="235.1" step="0.1">
+                <span class="axis-label">Z</span>
+                <input type="number" id="limitZMin" value="-5" step="0.1">
+                <input type="number" id="limitZMax" value="270.1" step="0.1">
+            </div>
+        </div>
+
+        <!-- Speed -->
+        <div class="setting">
+            <label>Speed (mm/min)</label>
+            <input type="number" id="speedInput" value="3000" min="100" max="6000" step="100">
+        </div>
+
+        <!-- Step Distance -->
+        <div class="setting">
+            <label>Step Distance (mm)</label>
+            <input type="number" id="stepInput" value="0.1" min="0.1" max="50" step="0.1">
+        </div>
+
+        <div style="flex:1"></div>
+
+        <!-- Center Bed -->
+        <button class="btn primary full" id="btnCenterBed">Center Bed</button>
+    </div>
+
+    <script src="js/printer.js"></script>
+    <script src="js/interactivity.js"></script>
+</body>
+</html>
