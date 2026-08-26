@@ -65,13 +65,18 @@ def readLetters(directory):
 			letters[letterRepr] = letter
 	return letters
 
+STARTING_POSITION = "G0 Z7"
+RAISED_POSITION = "G0 Z10"
+
 def textToGcode(letters, text, lineLength, lineSpacing, padding, offsetX=25, offsetY=200):
 	# used for fast string concatenation
 	gcodeLettersArray = []
 
 	for char in text:
 		letter = letters[char].translated(offsetX, offsetY)
+		gcodeLettersArray.append(f"{STARTING_POSITION}\n")
 		gcodeLettersArray.append(repr(letter))
+		gcodeLettersArray.append(f"{RAISED_POSITION}\n")
 
 		offsetX += letter.width + padding
 		if offsetX >= lineLength:

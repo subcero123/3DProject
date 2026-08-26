@@ -6,13 +6,13 @@ import importlib.util
 PRINTER = "192.168.137.34"
 URL = f"http://{PRINTER}/printer/gcode/script"
 
-TEXT_TO_PRINT = "HELLO WORLD"
+TEXT_TO_PRINT = "000"
 
 LINE_LENGTH = 300
 LINE_SPACING = 10
 PADDING = 3
-OFFSET_X = 25
-OFFSET_Y = 200
+OFFSET_X = 10
+OFFSET_Y = 10
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEXT_TO_GCODE_DIR = os.path.join(BASE_DIR, "text-to-gcode_v2")
 GCODE_DIR = os.path.join(TEXT_TO_GCODE_DIR, "ascii_gcode")
@@ -36,7 +36,7 @@ gcode_with_z = (
     "SAVE_GCODE_STATE NAME=TEXT_TO_GCODE\n"
     "G90\n"
     "G21\n"
-    "G0 Z27.42\n"
+    "G0 Z7.23\n"
     f"{gcode}"
     "RESTORE_GCODE_STATE NAME=TEXT_TO_GCODE\n"
 )
