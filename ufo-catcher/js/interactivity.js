@@ -16,9 +16,21 @@ const KEY_MAP = {
 
 const activeKeys = new Set();
 const moveIntervals = new Map();
-const REPEAT_MS = 500;
+const REPEAT_MS = 300;
 const logPanel = document.getElementById('logPanel');
 const centerDot = document.getElementById('centerDot');
+
+/* ===== CLAW TOGGLE STATE ===== */
+let clawNextDir = 'down'; // toggles between 'down' and 'up'
+const btnClaw = document.getElementById('btn-claw');
+const clawLabel = document.getElementById('clawLabel');
+let spaceCycleZ = [42.78, 149.78]; // Z coordinates to cycle through
+let spaceCycleIndex = 0; // current index in the cycle
+
+/* ===== CLAW SAFETY LIMIT ===== */
+const clawZMinInput = document.getElementById('clawZMinInput');
+function getClawZMin() { return parseFloat(clawZMinInput?.value) || 39.89; }
+let clawZ = 270.1; // will be updated after settings load
 
 /* ===== SETTINGS ELEMENTS ===== */
 const printerIpInput  = document.getElementById('printerIp');
@@ -34,6 +46,9 @@ const limitZMaxInput  = document.getElementById('limitZMax');
 const speedInput      = document.getElementById('speedInput');
 const stepInput       = document.getElementById('stepInput');
 const btnCenterBed    = document.getElementById('btnCenterBed');
+
+// Initialize clawZ from the actual Z max input
+clawZ = parseFloat(limitZMaxInput.value) || 270.1;
 
 /* ===== VISUAL FEEDBACK ===== */
 function activate(dir) {
@@ -119,6 +134,18 @@ btnTestConn.addEventListener('click', async () => {
     }
 });
 
+/* ===== CLAW VISUAL FEEDBACK ===== */
+function activateClaw(dir) {
+    if (btnClaw) {
+        btnClaw.classList.remove('active-down', 'active-up');
+        btnClaw.classList.add(`active-${dir}`);
+    }
+}
+
+function deactivateClaw() {
+    if (btnClaw) btnClaw.classList.remove('active-down', 'active-up');
+}
+
 /* ===== MOVEMENT ===== */
 const DIR_AXIS = {
     up:    'Y',
@@ -137,7 +164,7 @@ const DIR_SIGN = {
 async function moveAxis(dir) {
     const axis = DIR_AXIS[dir];
     const sign = DIR_SIGN[dir];
-    const step = parseFloat(stepInput.value) || 0.1;
+    const step = parseFloat(stepInput.value) || 5;
     const distance = `${sign}${step}`;
 
     logMessage(`${axis}${distance} mm`);
@@ -167,15 +194,22 @@ btnCenterBed.addEventListener('click', async () => {
 
     if (result) {
         logMessage('Bed centered');
+        clawZ = (zMin + zMax) / 2;
     } else {
         logMessage('Center bed failed');
     }
 });
 
 /* ===== REPEAT CONTROL ===== */
-function startRepeat(dir) {
+function startRepeat(dir, clawDir) {
     if (moveIntervals.has(dir)) return;
-    const id = setInterval(() => moveAxis(dir), REPEAT_MS);
+    const id = setInterval(() => {
+        if (dir === 'claw') {
+            moveClaw(clawDir);
+        } else {
+            moveAxis(dir);
+        }
+    }, REPEAT_MS);
     moveIntervals.set(dir, id);
 }
 
@@ -192,10 +226,46 @@ function stopAllRepeats() {
     moveIntervals.clear();
 }
 
+/* ===== CLAW MOVEMENT ===== */
+async function moveClaw(dir) {
+    const step = parseFloat(stepInput.value) || 5;
+    if (dir === 'down') {
+        const newZ = clawZ - step;
+        const zMin = getClawZMin();
+        if (newZ < zMin) {
+            log('claw', `⚠ Z limit reached (${zMin})`);
+            stopRepeat('claw');
+            activeKeys.delete('claw');
+            deactivateClaw();
+            return;
+        }
+        await moveClawDown(step);
+        clawZ = newZ;
+        log('claw', `▼ ${step}mm (Z:${clawZ.toFixed(1)})`);
+    } else {
+        await moveClawUp(step);
+        clawZ += step;
+        log('claw', `▲ ${step}mm (Z:${clawZ.toFixed(1)})`);
+    }
+}
+
 /* ===== KEYBOARD HANDLERS ===== */
 document.addEventListener('keydown', (e) => {
     // Don't handle keys when typing in inputs
     if (e.target.tagName === 'INPUT') return;
+
+    // --- Space: cycle Z coordinates ---
+    if (e.key === ' ') {
+        e.preventDefault();
+        const targetZ = spaceCycleZ[spaceCycleIndex];
+        spaceCycleIndex = (spaceCycleIndex + 1) % spaceCycleZ.length;
+        log('claw', `Moving to Z${targetZ.toFixed(2)}...`);
+        moveAbsoluteZ(targetZ).then(() => {
+            clawZ = targetZ;
+            log('claw', `At Z${clawZ.toFixed(1)}`);
+        });
+        return;
+    }
 
     const dir = KEY_MAP[e.key];
     if (!dir) return;
@@ -212,6 +282,20 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('keyup', (e) => {
     if (e.target.tagName === 'INPUT') return;
+
+    // --- Space: claw toggle ---
+    if (e.key === ' ') {
+        e.preventDefault();
+        if (activeKeys.has('claw')) {
+            activeKeys.delete('claw');
+            stopRepeat('claw');
+            deactivateClaw();
+            log('claw', `${clawNextDir} released`);
+            // Flip direction for next press
+            clawNextDir = clawNextDir === 'down' ? 'up' : 'down';
+        }
+        return;
+    }
 
     const dir = KEY_MAP[e.key];
     if (!dir) return;
@@ -268,6 +352,61 @@ document.querySelectorAll('.arrow-btn').forEach(btn => {
         deactivate(dir);
         log(dir, 'released');
     });
+});
+
+/* ===== CLAW BUTTON MOUSE / TOUCH ===== */
+btnClaw.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    if (!activeKeys.has('claw')) {
+        const dir = clawNextDir;
+        activeKeys.add('claw');
+        activateClaw(dir);
+        log('claw', `${dir} pressed`);
+        moveClaw(dir);
+        startRepeat('claw', dir);
+    }
+});
+
+btnClaw.addEventListener('mouseup', () => {
+    if (activeKeys.has('claw')) {
+        activeKeys.delete('claw');
+        stopRepeat('claw');
+        deactivateClaw();
+        log('claw', `${clawNextDir} released`);
+        clawNextDir = clawNextDir === 'down' ? 'up' : 'down';
+    }
+});
+
+btnClaw.addEventListener('mouseleave', () => {
+    if (activeKeys.has('claw')) {
+        activeKeys.delete('claw');
+        stopRepeat('claw');
+        deactivateClaw();
+        log('claw', `${clawNextDir} released`);
+        clawNextDir = clawNextDir === 'down' ? 'up' : 'down';
+    }
+});
+
+btnClaw.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (!activeKeys.has('claw')) {
+        const dir = clawNextDir;
+        activeKeys.add('claw');
+        activateClaw(dir);
+        log('claw', `${dir} pressed`);
+        moveClaw(dir);
+        startRepeat('claw', dir);
+    }
+});
+
+btnClaw.addEventListener('touchend', () => {
+    if (activeKeys.has('claw')) {
+        activeKeys.delete('claw');
+        stopRepeat('claw');
+        deactivateClaw();
+        log('claw', `${clawNextDir} released`);
+        clawNextDir = clawNextDir === 'down' ? 'up' : 'down';
+    }
 });
 
 /* Prevent scrolling with arrow keys */

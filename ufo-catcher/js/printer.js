@@ -48,6 +48,25 @@ async function moveRelative(axis, distance) {
     return sendToPrinter(gcode);
 }
 
+/* ===== MOVE CLAW (Z axis) ===== */
+async function moveClawDown(step) {
+    return moveRelative('Z', `-${step}`);
+}
+
+async function moveClawUp(step) {
+    return moveRelative('Z', `+${step}`);
+}
+
+/* ===== MOVE ABSOLUTE Z (G90) ===== */
+async function moveAbsoluteZ(z, f = 3000) {
+    const gcode = [
+        "G90",
+        `G1 Z${z} F${f}`,
+        "G90",
+    ].join("\n");
+    return sendToPrinter(gcode);
+}
+
 /* ===== CENTER BED (G28 + move to center) ===== */
 async function centerBed(xMin, xMax, yMin, yMax, zMin, zMax) {
     const centerX = (xMin + xMax) / 2;
