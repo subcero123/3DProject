@@ -127,6 +127,11 @@ btnTestConn.addEventListener('click', async () => {
         connectionDot.className = 'status-dot connected';
         connectionLabel.textContent = `Connected (${result.status})`;
         logMessage(`Printer connected: ${PRINTER_IP}`);
+        // Reconnect WebSocket after successful test
+        if (typeof disconnectWebSocket === 'function' && typeof connectWebSocket === 'function') {
+            disconnectWebSocket();
+            setTimeout(connectWebSocket, 500);
+        }
     } else {
         connectionDot.className = 'status-dot error';
         connectionLabel.textContent = result.error || `Failed (${result.status})`;

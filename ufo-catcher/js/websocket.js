@@ -91,7 +91,6 @@ function connectWebSocket() {
     };
 
     printerWs.onmessage = (event) => {
-        console.log("[WS] RX:", event.data);
         try {
             const data = JSON.parse(event.data);
 
