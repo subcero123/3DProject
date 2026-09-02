@@ -28,27 +28,43 @@ let spaceCycleZ = [42.78, 149.78]; // Z coordinates to cycle through
 let spaceCycleIndex = 0; // current index in the cycle
 
 /* ===== CLAW SAFETY LIMIT ===== */
-const clawZMinInput = document.getElementById('clawZMinInput');
-function getClawZMin() { return parseFloat(clawZMinInput?.value) || 39.89; }
+const CLAW_Z_MIN = 39.89;
 let clawZ = 270.1; // will be updated after settings load
+
+/* ===== FORBIDDEN ZONE (structure) ===== */
+const FORBIDDEN_ZONE = { xMin: 0, xMax: 117, yMin: 0, yMax: 111 };
+function isInForbiddenZone() {
+    const x = printerPosition.x;
+    const y = printerPosition.y;
+    // Structure zone
+    const inStructure = x >= FORBIDDEN_ZONE.xMin && x <= FORBIDDEN_ZONE.xMax &&
+                        y >= FORBIDDEN_ZONE.yMin && y <= FORBIDDEN_ZONE.yMax;
+    // Edge danger zone
+    const atEdge = y <= 36.00;
+    return inStructure || atEdge;
+}
+
+function updateForbiddenIndicator() {
+    if (!btnClaw) return;
+    if (isInForbiddenZone()) {
+        btnClaw.classList.add('forbidden');
+        btnClaw.classList.remove('safe');
+    } else {
+        btnClaw.classList.add('safe');
+        btnClaw.classList.remove('forbidden');
+    }
+}
+
+setInterval(updateForbiddenIndicator, 200);
 
 /* ===== SETTINGS ELEMENTS ===== */
 const printerIpInput  = document.getElementById('printerIp');
 const btnTestConn     = document.getElementById('btnTestConnection');
 const connectionDot   = document.getElementById('connectionDot');
 const connectionLabel = document.getElementById('connectionLabel');
-const limitXMinInput  = document.getElementById('limitXMin');
-const limitXMaxInput  = document.getElementById('limitXMax');
-const limitYMinInput  = document.getElementById('limitYMin');
-const limitYMaxInput  = document.getElementById('limitYMax');
-const limitZMinInput  = document.getElementById('limitZMin');
-const limitZMaxInput  = document.getElementById('limitZMax');
 const speedInput      = document.getElementById('speedInput');
 const stepInput       = document.getElementById('stepInput');
 const btnCenterBed    = document.getElementById('btnCenterBed');
-
-// Initialize clawZ from the actual Z max input
-clawZ = parseFloat(limitZMaxInput.value) || 270.1;
 
 /* ===== VISUAL FEEDBACK ===== */
 function activate(dir) {
@@ -181,12 +197,12 @@ async function moveAxis(dir) {
 
 // Center bed
 btnCenterBed.addEventListener('click', async () => {
-    const xMin = parseFloat(limitXMinInput.value) || 0;
-    const xMax = parseFloat(limitXMaxInput.value) || 220;
-    const yMin = parseFloat(limitYMinInput.value) || 0;
-    const yMax = parseFloat(limitYMaxInput.value) || 220;
-    const zMin = parseFloat(limitZMinInput.value) || 0;
-    const zMax = parseFloat(limitZMaxInput.value) || 270;
+    const xMin = -4.5;
+    const xMax = 235.1;
+    const yMin = 0;
+    const yMax = 235.1;
+    const zMin = 0;
+    const zMax = 270.1;
 
     logMessage('Centering bed...');
     btnCenterBed.textContent = 'Moving...';
@@ -236,7 +252,7 @@ async function moveClaw(dir) {
     const step = parseFloat(stepInput.value) || 5;
     if (dir === 'down') {
         const newZ = clawZ - step;
-        const zMin = getClawZMin();
+        const zMin = CLAW_Z_MIN;
         if (newZ < zMin) {
             log('claw', `⚠ Z limit reached (${zMin})`);
             stopRepeat('claw');
@@ -262,6 +278,10 @@ document.addEventListener('keydown', (e) => {
     // --- Space: cycle Z coordinates ---
     if (e.key === ' ') {
         e.preventDefault();
+        if (isInForbiddenZone()) {
+            log('claw', '⚠ Blocked: inside structure zone');
+            return;
+        }
         const targetZ = spaceCycleZ[spaceCycleIndex];
         spaceCycleIndex = (spaceCycleIndex + 1) % spaceCycleZ.length;
         log('claw', `Moving to Z${targetZ.toFixed(2)}...`);
@@ -362,6 +382,10 @@ document.querySelectorAll('.arrow-btn').forEach(btn => {
 /* ===== CLAW BUTTON MOUSE / TOUCH ===== */
 btnClaw.addEventListener('mousedown', (e) => {
     e.preventDefault();
+    if (isInForbiddenZone()) {
+        log('claw', '⚠ Blocked: inside structure zone');
+        return;
+    }
     if (!activeKeys.has('claw')) {
         const dir = clawNextDir;
         activeKeys.add('claw');
@@ -394,6 +418,10 @@ btnClaw.addEventListener('mouseleave', () => {
 
 btnClaw.addEventListener('touchstart', (e) => {
     e.preventDefault();
+    if (isInForbiddenZone()) {
+        log('claw', '⚠ Blocked: inside structure zone');
+        return;
+    }
     if (!activeKeys.has('claw')) {
         const dir = clawNextDir;
         activeKeys.add('claw');

@@ -192,6 +192,25 @@
             fill: #6aaa64;
         }
 
+        .claw-btn.safe {
+            border-color: #6aaa64;
+            color: #6aaa64;
+        }
+
+        .claw-btn.safe svg {
+            fill: #6aaa64;
+        }
+
+        .claw-btn.forbidden {
+            border-color: #e94560;
+            color: #e94560;
+            background: #fef0f2;
+        }
+
+        .claw-btn.forbidden svg {
+            fill: #e94560;
+        }
+
         /* --- Log panel --- */
         .log-panel {
             width: 260px;
@@ -294,37 +313,6 @@
             text-align: right;
         }
 
-        .setting .limits-grid {
-            display: grid;
-            grid-template-columns: auto 1fr 1fr;
-            gap: 4px;
-            align-items: center;
-        }
-
-        .setting .limits-grid .axis-label {
-            font-size: 11px;
-            color: #555;
-            font-weight: bold;
-            width: 16px;
-            text-align: center;
-        }
-
-        .setting .limits-grid input {
-            width: 100%;
-            padding: 4px 6px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            color: #222;
-            background: #fafafa;
-            outline: none;
-        }
-
-        .setting .limits-grid input:focus {
-            border-color: #e94560;
-        }
-
         /* --- Buttons --- */
         .btn {
             padding: 8px 12px;
@@ -399,6 +387,8 @@
             color: #444;
             margin-top: 2px;
         }
+
+
 
         /* --- Position Display --- */
         .position-display {
@@ -510,22 +500,6 @@
             </div>
         </div>
 
-        <!-- Area Limits -->
-        <div class="setting">
-            <label>Area Limits (mm)</label>
-            <div class="limits-grid">
-                <span class="axis-label">X</span>
-                <input type="number" id="limitXMin" value="-4.5" step="0.1">
-                <input type="number" id="limitXMax" value="235.1" step="0.1">
-                <span class="axis-label">Y</span>
-                <input type="number" id="limitYMin" value="0" step="0.1">
-                <input type="number" id="limitYMax" value="235.1" step="0.1">
-                <span class="axis-label">Z</span>
-                <input type="number" id="limitZMin" value="-5" step="0.1">
-                <input type="number" id="limitZMax" value="270.1" step="0.1">
-            </div>
-        </div>
-
         <!-- Speed -->
         <div class="setting">
             <label>Speed (mm/min)</label>
@@ -536,12 +510,6 @@
         <div class="setting">
             <label>Step Distance (mm)</label>
             <input type="number" id="stepInput" value="5" min="0.1" max="50" step="5">
-        </div>
-
-        <!-- Claw Z Min -->
-        <div class="setting">
-            <label>Claw Z Min (mm)</label>
-            <input type="number" id="clawZMinInput" value="39.89" min="0" step="0.01">
         </div>
 
         <div style="flex:1"></div>
