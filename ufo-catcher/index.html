@@ -399,6 +399,31 @@
             color: #444;
             margin-top: 2px;
         }
+
+        /* --- Position Display --- */
+        .position-display {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 3px 8px;
+            padding: 8px;
+            background: #fafafa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #333;
+        }
+
+        .position-display span:nth-child(odd) {
+            font-weight: bold;
+            color: #e94560;
+            width: 12px;
+        }
+
+        .position-display .pos-val {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
     </style>
 </head>
 <body>
@@ -470,6 +495,21 @@
             <button class="btn full" id="btnTestConnection">Test Connection</button>
         </div>
 
+        <!-- WebSocket Position -->
+        <div class="setting">
+            <label>Live Position</label>
+            <div class="connection-status">
+                <span class="status-dot" id="wsStatusDot"></span>
+                <span id="wsStatusLabel">Disconnected</span>
+            </div>
+            <div class="position-display" id="positionDisplay">
+                <span>X</span><span class="pos-val">0.00</span>
+                <span>Y</span><span class="pos-val">0.00</span>
+                <span>Z</span><span class="pos-val">0.00</span>
+                <span>E</span><span class="pos-val">0.00</span>
+            </div>
+        </div>
+
         <!-- Area Limits -->
         <div class="setting">
             <label>Area Limits (mm)</label>
@@ -511,6 +551,7 @@
     </div>
 
     <script src="js/printer.js"></script>
+    <script src="js/websocket.js"></script>
     <script src="js/interactivity.js"></script>
 </body>
 </html>
