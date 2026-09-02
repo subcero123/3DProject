@@ -58,7 +58,7 @@ async function moveClawUp(step) {
 }
 
 /* ===== MOVE ABSOLUTE Z (G90) ===== */
-async function moveAbsoluteZ(z, f = 3000) {
+async function moveAbsoluteZ(z, f = 600) {
     const gcode = [
         "G90",
         `G1 Z${z} F${f}`,
