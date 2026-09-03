@@ -20,15 +20,12 @@ const REPEAT_MS = 300;
 const logPanel = document.getElementById('logPanel');
 const centerDot = document.getElementById('centerDot');
 
-/* ===== CLAW TOGGLE STATE ===== */
-let clawNextDir = 'down'; // toggles between 'down' and 'up'
+/* ===== CLAW BUTTON ===== */
 const btnClaw = document.getElementById('btn-claw');
 const clawLabel = document.getElementById('clawLabel');
-let spaceCycleZ = [42.78, 149.78]; // Z coordinates to cycle through
-let spaceCycleIndex = 0; // current index in the cycle
+let grabInProgress = false;
 
-/* ===== CLAW SAFETY LIMIT ===== */
-const CLAW_Z_MIN = 39.89;
+/* ===== CLAW POSITION TRACKER ===== */
 let clawZ = 270.1; // will be updated after settings load
 
 /* ===== FORBIDDEN ZONE (structure) ===== */
@@ -222,14 +219,10 @@ btnCenterBed.addEventListener('click', async () => {
 });
 
 /* ===== REPEAT CONTROL ===== */
-function startRepeat(dir, clawDir) {
+function startRepeat(dir) {
     if (moveIntervals.has(dir)) return;
     const id = setInterval(() => {
-        if (dir === 'claw') {
-            moveClaw(clawDir);
-        } else {
-            moveAxis(dir);
-        }
+        moveAxis(dir);
     }, REPEAT_MS);
     moveIntervals.set(dir, id);
 }
@@ -247,27 +240,48 @@ function stopAllRepeats() {
     moveIntervals.clear();
 }
 
-/* ===== CLAW MOVEMENT ===== */
-async function moveClaw(dir) {
-    const step = parseFloat(stepInput.value) || 5;
-    if (dir === 'down') {
-        const newZ = clawZ - step;
-        const zMin = CLAW_Z_MIN;
-        if (newZ < zMin) {
-            log('claw', `⚠ Z limit reached (${zMin})`);
-            stopRepeat('claw');
-            activeKeys.delete('claw');
-            deactivateClaw();
-            return;
-        }
-        await moveClawDown(step);
-        clawZ = newZ;
-        log('claw', `▼ ${step}mm (Z:${clawZ.toFixed(1)})`);
-    } else {
-        await moveClawUp(step);
-        clawZ += step;
-        log('claw', `▲ ${step}mm (Z:${clawZ.toFixed(1)})`);
+/* ===== GRAB (down to pick Z, up to travel Z) ===== */
+const GRAB_Z_PICK = 42.78;   // lower the claw here to pick a prize
+const GRAB_Z_RAISE = 149.78; // raise the machine here after picking
+
+/* ===== POST-GRAB DROP MOVES (XY, in order) ===== */
+const GRAB_DROP_MOVES = [
+    { axis: 'Y', pos: 125 },
+    { axis: 'X', pos: 55 },
+    { axis: 'Y', pos: 25 },
+];
+
+async function grab() {
+    if (grabInProgress) return;
+    if (isInForbiddenZone()) {
+        log('claw', '⚠ Blocked: inside structure zone');
+        return;
     }
+    grabInProgress = true;
+
+    // Down to the pick position
+    activateClaw('down');
+    log('claw', `Moving to Z${GRAB_Z_PICK.toFixed(2)}...`);
+    await moveAbsoluteZ(GRAB_Z_PICK);
+    clawZ = GRAB_Z_PICK;
+    log('claw', `At Z${clawZ.toFixed(1)}`);
+    deactivateClaw();
+
+    // Up to the raised position
+    activateClaw('up');
+    log('claw', `Moving to Z${GRAB_Z_RAISE.toFixed(2)}...`);
+    await moveAbsoluteZ(GRAB_Z_RAISE);
+    clawZ = GRAB_Z_RAISE;
+    log('claw', `At Z${clawZ.toFixed(1)}`);
+    deactivateClaw();
+
+    // Travel to the drop-off position
+    for (const move of GRAB_DROP_MOVES) {
+        log('claw', `Moving to ${move.axis}${move.pos.toFixed(2)}...`);
+        await moveAbsolute(move.axis, move.pos);
+    }
+
+    grabInProgress = false;
 }
 
 /* ===== KEYBOARD HANDLERS ===== */
@@ -275,20 +289,11 @@ document.addEventListener('keydown', (e) => {
     // Don't handle keys when typing in inputs
     if (e.target.tagName === 'INPUT') return;
 
-    // --- Space: cycle Z coordinates ---
+    // --- Space: grab (down then up) ---
     if (e.key === ' ') {
         e.preventDefault();
-        if (isInForbiddenZone()) {
-            log('claw', '⚠ Blocked: inside structure zone');
-            return;
-        }
-        const targetZ = spaceCycleZ[spaceCycleIndex];
-        spaceCycleIndex = (spaceCycleIndex + 1) % spaceCycleZ.length;
-        log('claw', `Moving to Z${targetZ.toFixed(2)}...`);
-        moveAbsoluteZ(targetZ).then(() => {
-            clawZ = targetZ;
-            log('claw', `At Z${clawZ.toFixed(1)}`);
-        });
+        if (e.repeat) return;
+        grab();
         return;
     }
 
@@ -307,20 +312,6 @@ document.addEventListener('keydown', (e) => {
 
 document.addEventListener('keyup', (e) => {
     if (e.target.tagName === 'INPUT') return;
-
-    // --- Space: claw toggle ---
-    if (e.key === ' ') {
-        e.preventDefault();
-        if (activeKeys.has('claw')) {
-            activeKeys.delete('claw');
-            stopRepeat('claw');
-            deactivateClaw();
-            log('claw', `${clawNextDir} released`);
-            // Flip direction for next press
-            clawNextDir = clawNextDir === 'down' ? 'up' : 'down';
-        }
-        return;
-    }
 
     const dir = KEY_MAP[e.key];
     if (!dir) return;
@@ -379,67 +370,15 @@ document.querySelectorAll('.arrow-btn').forEach(btn => {
     });
 });
 
-/* ===== CLAW BUTTON MOUSE / TOUCH ===== */
+/* ===== CLAW BUTTON (grab) ===== */
 btnClaw.addEventListener('mousedown', (e) => {
     e.preventDefault();
-    if (isInForbiddenZone()) {
-        log('claw', '⚠ Blocked: inside structure zone');
-        return;
-    }
-    if (!activeKeys.has('claw')) {
-        const dir = clawNextDir;
-        activeKeys.add('claw');
-        activateClaw(dir);
-        log('claw', `${dir} pressed`);
-        moveClaw(dir);
-        startRepeat('claw', dir);
-    }
-});
-
-btnClaw.addEventListener('mouseup', () => {
-    if (activeKeys.has('claw')) {
-        activeKeys.delete('claw');
-        stopRepeat('claw');
-        deactivateClaw();
-        log('claw', `${clawNextDir} released`);
-        clawNextDir = clawNextDir === 'down' ? 'up' : 'down';
-    }
-});
-
-btnClaw.addEventListener('mouseleave', () => {
-    if (activeKeys.has('claw')) {
-        activeKeys.delete('claw');
-        stopRepeat('claw');
-        deactivateClaw();
-        log('claw', `${clawNextDir} released`);
-        clawNextDir = clawNextDir === 'down' ? 'up' : 'down';
-    }
+    grab();
 });
 
 btnClaw.addEventListener('touchstart', (e) => {
     e.preventDefault();
-    if (isInForbiddenZone()) {
-        log('claw', '⚠ Blocked: inside structure zone');
-        return;
-    }
-    if (!activeKeys.has('claw')) {
-        const dir = clawNextDir;
-        activeKeys.add('claw');
-        activateClaw(dir);
-        log('claw', `${dir} pressed`);
-        moveClaw(dir);
-        startRepeat('claw', dir);
-    }
-});
-
-btnClaw.addEventListener('touchend', () => {
-    if (activeKeys.has('claw')) {
-        activeKeys.delete('claw');
-        stopRepeat('claw');
-        deactivateClaw();
-        log('claw', `${clawNextDir} released`);
-        clawNextDir = clawNextDir === 'down' ? 'up' : 'down';
-    }
+    grab();
 });
 
 /* Prevent scrolling with arrow keys */

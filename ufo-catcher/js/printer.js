@@ -67,6 +67,15 @@ async function moveAbsoluteZ(z, f = 600) {
     return sendToPrinter(gcode);
 }
 
+/* ===== MOVE ABSOLUTE AXIS (G90) ===== */
+async function moveAbsolute(axis, pos, f = 3000) {
+    const gcode = [
+        "G90",
+        `G1 ${axis}${pos} F${f}`,
+    ].join("\n");
+    return sendToPrinter(gcode);
+}
+
 /* ===== CENTER BED (G28 + move to center) ===== */
 async function centerBed(xMin, xMax, yMin, yMax, zMin, zMax) {
     const centerX = (xMin + xMax) / 2;
