@@ -242,6 +242,27 @@
         }
 
         /* ===== SIDEBAR ===== */
+        .sidebar .twitch-section {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .twitch-section .btn {
+            display: inline-block;
+        }
+
+        .twitch-section #status {
+            font-size: 11px;
+            color: #444;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .sidebar {
             width: 10%;
             min-width: 180px;
@@ -472,6 +493,11 @@
 
     <!-- ===== SIDEBAR ===== -->
     <div class="sidebar">
+        <div class="twitch-section">
+            <button class="btn" id="connectTwitch">Connect to Twitch</button>
+            <div id="status">Not connected</div>
+        </div>
+
         <h2>Settings</h2>
 
         <!-- Printer IP -->
@@ -506,6 +532,17 @@
             <input type="number" id="speedInput" value="3000" min="100" max="6000" step="100">
         </div>
 
+        <!-- Chat Command Counters -->
+        <div class="setting">
+            <label>Twitch Commands</label>
+            <div class="position-display">
+                <span>↑</span><span class="pos-val" id="upCount">0</span>
+                <span>←</span><span class="pos-val" id="leftCount">0</span>
+                <span>→</span><span class="pos-val" id="rightCount">0</span>
+                <span>↓</span><span class="pos-val" id="downCount">0</span>
+            </div>
+        </div>
+
         <!-- Step Distance -->
         <div class="setting">
             <label>Step Distance (mm)</label>
@@ -521,5 +558,6 @@
     <script src="js/printer.js"></script>
     <script src="js/websocket.js"></script>
     <script src="js/interactivity.js"></script>
+    <script src="js/twitch.js"></script>
 </body>
 </html>
