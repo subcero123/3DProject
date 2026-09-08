@@ -29,7 +29,7 @@ let grabInProgress = false;
 let clawZ = 270.1; // will be updated after settings load
 
 /* ===== FORBIDDEN ZONE (structure) ===== */
-const FORBIDDEN_ZONE = { xMin: 0, xMax: 117, yMin: 0, yMax: 111 };
+const FORBIDDEN_ZONE = { xMin: 0, xMax: 115, yMin: 0, yMax: 158 };
 function isInForbiddenZone() {
     const x = printerPosition.x;
     const y = printerPosition.y;
@@ -241,8 +241,8 @@ function stopAllRepeats() {
 }
 
 /* ===== GRAB (down to pick Z, up to travel Z) ===== */
-const GRAB_Z_PICK = 42.78;   // lower the claw here to pick a prize
-const GRAB_Z_RAISE = 149.78; // raise the machine here after picking
+const GRAB_Z_PICK = 29.25;   // lower the claw here to pick a prize
+const GRAB_Z_RAISE = 140; // raise the machine here after picking
 
 /* ===== POST-GRAB DROP MOVES (XY, in order) ===== */
 const GRAB_DROP_MOVES = [
@@ -259,28 +259,30 @@ async function grab() {
     }
     grabInProgress = true;
 
-    // Down to the pick position
+    // Whole grab sequence in a single combined g-code script:
+    // Z down to pick -> Z up to raise -> XY travel to drop-off.
+    const moves = [
+        `G1 Z${GRAB_Z_PICK} F600`,
+        `G1 Z${GRAB_Z_RAISE} F600`,
+        ...GRAB_DROP_MOVES.map(m => `G1 ${m.axis}${m.pos} F3000`),
+    ];
+    const gcode = ["G90", ...moves].join("\n");
+
     activateClaw('down');
-    log('claw', `Moving to Z${GRAB_Z_PICK.toFixed(2)}...`);
-    await moveAbsoluteZ(GRAB_Z_PICK);
-    clawZ = GRAB_Z_PICK;
-    log('claw', `At Z${clawZ.toFixed(1)}`);
-    deactivateClaw();
-
-    // Up to the raised position
-    activateClaw('up');
-    log('claw', `Moving to Z${GRAB_Z_RAISE.toFixed(2)}...`);
-    await moveAbsoluteZ(GRAB_Z_RAISE);
-    clawZ = GRAB_Z_RAISE;
-    log('claw', `At Z${clawZ.toFixed(1)}`);
-    deactivateClaw();
-
-    // Travel to the drop-off position
-    for (const move of GRAB_DROP_MOVES) {
-        log('claw', `Moving to ${move.axis}${move.pos.toFixed(2)}...`);
-        await moveAbsolute(move.axis, move.pos);
+    log('claw', 'Sending combined grab g-code:');
+    for (const line of gcode.split('\n')) {
+        log('claw', line);
     }
 
+    const result = await sendToPrinter(gcode);
+
+    if (!result) {
+        log('claw', 'Grab failed');
+    } else {
+        clawZ = GRAB_Z_RAISE;
+        log('claw', 'Grab sequence done');
+    }
+    deactivateClaw();
     grabInProgress = false;
 }
 
