@@ -209,6 +209,18 @@ function processChatMessage(message) {
                text === "g") {
 
         grab();
+
+    } else if (text === "beep" ||
+               text === "bip") {
+
+        const gcode = [
+            "M300 S880 P150 ; Play a high-pitch tone for 150ms",
+            "G4 P150        ; Dwell/pause for 150ms",
+            "M300 S880 P150 ; Play a second tone",
+        ].join("\n");
+
+        logMessage("Sending beep g-code:");
+        sendToPrinter(gcode);
     }
 }
 
