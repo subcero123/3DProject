@@ -61,7 +61,6 @@ const connectionDot   = document.getElementById('connectionDot');
 const connectionLabel = document.getElementById('connectionLabel');
 const speedInput      = document.getElementById('speedInput');
 const stepInput       = document.getElementById('stepInput');
-const btnCenterBed    = document.getElementById('btnCenterBed');
 
 /* ===== START GAME (Twitch interaction window) ===== */
 const btnStartGame = document.getElementById('btnStartGame');
@@ -78,7 +77,12 @@ function setGameState(active) {
         btnStartGame.textContent = active ? 'Stop Game' : 'Start Game';
     }
     if (gameStatus) {
-        gameStatus.textContent = active ? 'Running 0:60' : 'Not running';
+        if (active) {
+            gameStatus.hidden = false;
+            gameStatus.textContent = formatCountdown(GAME_DURATION_MS);
+        } else {
+            gameStatus.hidden = true;
+        }
     }
 }
 
@@ -93,8 +97,8 @@ function updateGameStatus() {
     if (gameStatus && gameTimerStart) {
         const remaining = GAME_DURATION_MS - (Date.now() - gameTimerStart);
         gameStatus.textContent = remaining > 0
-            ? `Running ${formatCountdown(remaining)}`
-            : 'Not running';
+            ? formatCountdown(remaining)
+            : '0:00';
     }
 }
 
@@ -258,31 +262,6 @@ async function moveAxis(dir) {
         logMessage('Move failed');
     }
 }
-
-// Center bed
-btnCenterBed.addEventListener('click', async () => {
-    const xMin = -4.5;
-    const xMax = 235.1;
-    const yMin = 0;
-    const yMax = 235.1;
-    const zMin = 0;
-    const zMax = 270.1;
-
-    logMessage('Centering bed...');
-    btnCenterBed.textContent = 'Moving...';
-    btnCenterBed.disabled = true;
-    const result = await centerBed(xMin, xMax, yMin, yMax, zMin, zMax);
-
-    btnCenterBed.textContent = 'Center Bed';
-    btnCenterBed.disabled = false;
-
-    if (result) {
-        logMessage('Bed centered');
-        clawZ = (zMin + zMax) / 2;
-    } else {
-        logMessage('Center bed failed');
-    }
-});
 
 /* ===== REPEAT CONTROL ===== */
 function startRepeat(dir) {

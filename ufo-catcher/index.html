@@ -38,6 +38,25 @@
             letter-spacing: 6px;
         }
 
+        .title-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .game-timer {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #e94560;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 4px 12px;
+            letter-spacing: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+
         /* --- Direction pad container --- */
         .dpad {
             position: relative;
@@ -258,13 +277,6 @@
             border-bottom: 1px solid #eee;
         }
 
-        .game-section #gameStatus {
-            font-size: 11px;
-            color: #444;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
         .sidebar .twitch-section {
             text-align: center;
             display: flex;
@@ -463,7 +475,10 @@
 <body>
     <!-- ===== MAIN AREA ===== -->
     <div class="main">
-        <h1>UFO Catcher</h1>
+        <div class="title-row">
+            <h1>UFO Catcher</h1>
+            <div id="gameStatus" class="game-timer" hidden>0:60</div>
+        </div>
 
         <div class="play-area">
             <div class="dpad" id="dpad">
@@ -521,7 +536,6 @@
     <div class="sidebar">
         <div class="game-section">
             <button class="btn primary full" id="btnStartGame">Start Game</button>
-            <div id="gameStatus">Not running</div>
         </div>
 
         <div class="twitch-section">
@@ -570,9 +584,6 @@
         </div>
 
         <div style="flex:1"></div>
-
-        <!-- Center Bed -->
-        <button class="btn primary full" id="btnCenterBed">Center Bed</button>
     </div>
 
     <script src="js/printer.js"></script>
