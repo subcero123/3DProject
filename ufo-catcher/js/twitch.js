@@ -144,6 +144,12 @@ function processChatMessage(message) {
         return;
     }
 
+    // Extraer el nombre de usuario del prefijo (":usuario!usuario@...")
+    const prefix = parts[0].trim();
+    const username = prefix.startsWith(":")
+        ? prefix.split("!")[0].substring(1)
+        : prefix;
+
     const chatContent = parts[1];
 
     const messageParts = chatContent.split(" :");
@@ -185,6 +191,12 @@ function processChatMessage(message) {
     if (moveAlias[text]) {
 
         const dir = moveAlias[text];
+
+        // Registrar solo los movimientos relevantes,
+        // con el usuario en bold y color de acento
+        logMessage(
+            `<span style="color:#e94560;font-weight:bold">${username}</span>: ${text}`
+        );
 
         // Hacer que el movimiento funcione igual que
         // si se presionara una tecla en interactivity.js

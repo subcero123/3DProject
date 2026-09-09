@@ -211,11 +211,17 @@
             fill: #e94560;
         }
 
-        /* --- Log panel --- */
+        /* --- Play area: controls + command history --- */
+        .play-area {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+        }
+
+        /* --- Log panel (command history) --- */
         .log-panel {
-            width: 260px;
-            min-height: 80px;
-            max-height: 120px;
+            width: 340px;
+            height: 260px;
             background: #fff;
             border: 1px solid #e0e0e0;
             border-radius: 6px;
@@ -459,27 +465,37 @@
     <div class="main">
         <h1>UFO Catcher</h1>
 
-        <div class="dpad" id="dpad">
-            <!-- Up -->
-            <div class="arrow-btn up" data-dir="up" id="btn-up">
-                <svg viewBox="0 0 24 24"><polygon points="12,4 22,18 2,18"/></svg>
-            </div>
-            <!-- Down -->
-            <div class="arrow-btn down" data-dir="down" id="btn-down">
-                <svg viewBox="0 0 24 24"><polygon points="12,20 2,6 22,6"/></svg>
-            </div>
-            <!-- Left -->
-            <div class="arrow-btn left" data-dir="left" id="btn-left">
-                <svg viewBox="0 0 24 24"><polygon points="4,12 18,2 18,22"/></svg>
-            </div>
-            <!-- Right -->
-            <div class="arrow-btn right" data-dir="right" id="btn-right">
-                <svg viewBox="0 0 24 24"><polygon points="20,12 2,2 2,22"/></svg>
+        <div class="play-area">
+            <div class="dpad" id="dpad">
+                <!-- Up -->
+                <div class="arrow-btn up" data-dir="up" id="btn-up">
+                    <svg viewBox="0 0 24 24"><polygon points="12,4 22,18 2,18"/></svg>
+                </div>
+                <!-- Down -->
+                <div class="arrow-btn down" data-dir="down" id="btn-down">
+                    <svg viewBox="0 0 24 24"><polygon points="12,20 2,6 22,6"/></svg>
+                </div>
+                <!-- Left -->
+                <div class="arrow-btn left" data-dir="left" id="btn-left">
+                    <svg viewBox="0 0 24 24"><polygon points="4,12 18,2 18,22"/></svg>
+                </div>
+                <!-- Right -->
+                <div class="arrow-btn right" data-dir="right" id="btn-right">
+                    <svg viewBox="0 0 24 24"><polygon points="20,12 2,2 2,22"/></svg>
+                </div>
+
+                <!-- Center dot -->
+                <div class="center">
+                    <div class="dot" id="centerDot"></div>
+                </div>
             </div>
 
-            <!-- Center dot -->
-            <div class="center">
-                <div class="dot" id="centerDot"></div>
+            <!-- Command history -->
+            <div class="log-panel" id="logPanel">
+                <div class="entry">
+                    <span class="time">--:--:--</span>
+                    <span>Waiting for input...</span>
+                </div>
             </div>
         </div>
 
@@ -498,13 +514,6 @@
         </div>
         <div class="hints">
             <span><span class="key">Space</span> Grab (down/up)</span>
-        </div>
-
-        <div class="log-panel" id="logPanel">
-            <div class="entry">
-                <span class="time">--:--:--</span>
-                <span>Waiting for input...</span>
-            </div>
         </div>
     </div>
 
