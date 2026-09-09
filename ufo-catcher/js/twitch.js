@@ -213,6 +213,11 @@ function processChatMessage(message) {
     } else if (text === "beep" ||
                text === "bip") {
 
+        if (grabInProgress) {
+            logMessage('Beep ignored: grab in progress');
+            return;
+        }
+
         const gcode = [
             "M300 S880 P150 ; Play a high-pitch tone for 150ms",
             "G4 P150        ; Dwell/pause for 150ms",

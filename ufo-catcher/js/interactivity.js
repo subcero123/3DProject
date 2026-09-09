@@ -180,6 +180,7 @@ const DIR_SIGN = {
 };
 
 async function moveAxis(dir) {
+    if (grabInProgress) return;
     const axis = DIR_AXIS[dir];
     const sign = DIR_SIGN[dir];
     const step = parseFloat(stepInput.value) || 5;
@@ -204,7 +205,6 @@ btnCenterBed.addEventListener('click', async () => {
     logMessage('Centering bed...');
     btnCenterBed.textContent = 'Moving...';
     btnCenterBed.disabled = true;
-
     const result = await centerBed(xMin, xMax, yMin, yMax, zMin, zMax);
 
     btnCenterBed.textContent = 'Center Bed';
@@ -251,13 +251,53 @@ const GRAB_DROP_MOVES = [
     { axis: 'Y', pos: 25 },
 ];
 
+/* ===== GRAB END POSITION (final XY + raised Z) ===== */
+// Used to detect when the grab sequence is fully finished.
+const GRAB_TARGET = {
+    x: 55,
+    y: 25,
+    z: GRAB_Z_RAISE,
+};
+const GRAB_POS_TOLERANCE = 2.0;
+let grabCheckTimer = null;
+
+function isGrabFinished() {
+    const p = printerPosition;
+    return Math.abs(p.x - GRAB_TARGET.x) <= GRAB_POS_TOLERANCE &&
+           Math.abs(p.y - GRAB_TARGET.y) <= GRAB_POS_TOLERANCE &&
+           Math.abs(p.z - GRAB_TARGET.z) <= GRAB_POS_TOLERANCE;
+}
+
+function setGrabLock(locked) {
+    grabInProgress = locked;
+    if (clawLabel) {
+        clawLabel.textContent = locked ? 'GRABBING!' : 'GRAB';
+    }
+}
+
+// Poll until the printer reaches the grab end position,
+// then release the lock that excludes other commands.
+function scheduleGrabUnlock() {
+    if (grabCheckTimer) clearInterval(grabCheckTimer);
+    grabCheckTimer = setInterval(() => {
+        if (isGrabFinished()) {
+            clearInterval(grabCheckTimer);
+            grabCheckTimer = null;
+            setGrabLock(false);
+            deactivateClaw();
+            log('claw', 'Grab finished - lock released');
+        }
+    }, 500);
+}
+
 async function grab() {
     if (grabInProgress) return;
     if (isInForbiddenZone()) {
         log('claw', '⚠ Blocked: inside structure zone');
         return;
     }
-    grabInProgress = true;
+    setGrabLock(true);
+    stopAllRepeats();
 
     // Whole grab sequence in a single combined g-code script:
     // Z down to pick -> Z up to raise -> XY travel to drop-off.
@@ -278,12 +318,12 @@ async function grab() {
 
     if (!result) {
         log('claw', 'Grab failed');
+        setGrabLock(false);
+        deactivateClaw();
     } else {
-        clawZ = GRAB_Z_RAISE;
-        log('claw', 'Grab sequence done');
+        log('claw', 'Grab sequence sent - waiting for final position...');
+        scheduleGrabUnlock();
     }
-    deactivateClaw();
-    grabInProgress = false;
 }
 
 /* ===== KEYBOARD HANDLERS ===== */
