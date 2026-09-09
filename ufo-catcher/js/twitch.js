@@ -174,59 +174,41 @@ function processChatMessage(message) {
     // COMANDOS
     // ========================================
 
-    if (text === "left") {
+    const moveAlias = {
+        "left":  "left",
+        "l":     "left",
+        "right": "right",
+        "r":     "right",
+        "up":    "up",
+        "u":     "up",
+        "down":  "down",
+        "d":     "down",
+    };
 
-        counters.left++;
+    if (moveAlias[text]) {
+
+        const dir = moveAlias[text];
+        counters[dir]++;
 
         console.log(
-            `[COUNTER] left: ${counters.left}`
+            `[COUNTER] ${dir}: ${counters[dir]}`
         );
 
         document.getElementById(
-            "leftCount"
-        ).textContent = counters.left;
+            `${dir}Count`
+        ).textContent = counters[dir];
 
-    }
+        // Hacer que el movimiento funcione igual que
+        // si se presionara una tecla en interactivity.js
+        moveAxis(dir);
 
-    else if (text === "right") {
+    } else if (text === "grab" ||
+               text === "claw" ||
+               text === "prensa" ||
+               text === "agarrar" ||
+               text === "g") {
 
-        counters.right++;
-
-        console.log(
-            `[COUNTER] right: ${counters.right}`
-        );
-
-        document.getElementById(
-            "rightCount"
-        ).textContent = counters.right;
-
-    }
-
-    else if (text === "up") {
-
-        counters.up++;
-
-        console.log(
-            `[COUNTER] up: ${counters.up}`
-        );
-
-        document.getElementById(
-            "upCount"
-        ).textContent = counters.up;
-
-    }
-
-    else if (text === "down") {
-
-        counters.down++;
-
-        console.log(
-            `[COUNTER] down: ${counters.down}`
-        );
-
-        document.getElementById(
-            "downCount"
-        ).textContent = counters.down;
+        grab();
     }
 }
 
