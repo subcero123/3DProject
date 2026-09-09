@@ -242,6 +242,23 @@
         }
 
         /* ===== SIDEBAR ===== */
+        .sidebar .game-section {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .game-section #gameStatus {
+            font-size: 11px;
+            color: #444;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .sidebar .twitch-section {
             text-align: center;
             display: flex;
@@ -493,6 +510,11 @@
 
     <!-- ===== SIDEBAR ===== -->
     <div class="sidebar">
+        <div class="game-section">
+            <button class="btn primary full" id="btnStartGame">Start Game</button>
+            <div id="gameStatus">Not running</div>
+        </div>
+
         <div class="twitch-section">
             <button class="btn" id="connectTwitch">Connect to Twitch</button>
             <div id="status">Not connected</div>
@@ -530,17 +552,6 @@
         <div class="setting">
             <label>Speed (mm/min)</label>
             <input type="number" id="speedInput" value="3000" min="100" max="6000" step="100">
-        </div>
-
-        <!-- Chat Command Counters -->
-        <div class="setting">
-            <label>Twitch Commands</label>
-            <div class="position-display">
-                <span>↑</span><span class="pos-val" id="upCount">0</span>
-                <span>←</span><span class="pos-val" id="leftCount">0</span>
-                <span>→</span><span class="pos-val" id="rightCount">0</span>
-                <span>↓</span><span class="pos-val" id="downCount">0</span>
-            </div>
         </div>
 
         <!-- Step Distance -->

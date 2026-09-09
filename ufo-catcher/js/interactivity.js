@@ -63,6 +63,72 @@ const speedInput      = document.getElementById('speedInput');
 const stepInput       = document.getElementById('stepInput');
 const btnCenterBed    = document.getElementById('btnCenterBed');
 
+/* ===== START GAME (Twitch interaction window) ===== */
+const btnStartGame = document.getElementById('btnStartGame');
+const gameStatus   = document.getElementById('gameStatus');
+const GAME_DURATION_MS = 60 * 1000; // 1 minute
+let gameActive = false;
+let gameTimer = null;
+let gameCountdown = null;
+let gameTimerStart = null;
+
+function setGameState(active) {
+    gameActive = active;
+    if (btnStartGame) {
+        btnStartGame.textContent = active ? 'Stop Game' : 'Start Game';
+    }
+    if (gameStatus) {
+        gameStatus.textContent = active ? 'Running 0:60' : 'Not running';
+    }
+}
+
+function formatCountdown(ms) {
+    const totalSeconds = Math.ceil(ms / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function updateGameStatus() {
+    if (gameStatus && gameTimerStart) {
+        const remaining = GAME_DURATION_MS - (Date.now() - gameTimerStart);
+        gameStatus.textContent = remaining > 0
+            ? `Running ${formatCountdown(remaining)}`
+            : 'Not running';
+    }
+}
+
+function endGame() {
+    if (gameTimer) {
+        clearTimeout(gameTimer);
+        gameTimer = null;
+    }
+    if (gameCountdown) {
+        clearInterval(gameCountdown);
+        gameCountdown = null;
+    }
+    gameTimerStart = null;
+    setGameState(false);
+    logMessage('Game finished - Twitch commands disabled');
+}
+
+function startGame() {
+    if (gameActive) {
+        // Toggle off if clicked while running
+        endGame();
+        return;
+    }
+    setGameState(true);
+    gameTimerStart = Date.now();
+    logMessage('Game started - Twitch commands enabled for 1:00');
+    gameTimer = setTimeout(() => {
+        endGame();
+    }, GAME_DURATION_MS);
+    gameCountdown = setInterval(updateGameStatus, 250);
+}
+
+btnStartGame.addEventListener('click', startGame);
+
 /* ===== VISUAL FEEDBACK ===== */
 function activate(dir) {
     const btn = document.getElementById(`btn-${dir}`);

@@ -8,14 +8,6 @@ let twitchAccessToken = null;
 let twitchUser = null;
 let chatSocket = null;
 
-// Contadores
-let counters = {
-    left: 0,
-    right: 0,
-    up: 0,
-    down: 0
-};
-
 
 // ========================================
 // 1. CONECTAR CON TWITCH
@@ -174,6 +166,11 @@ function processChatMessage(message) {
     // COMANDOS
     // ========================================
 
+    // Solo procesar comandos durante la ventana de juego activa
+    if (!gameActive) {
+        return;
+    }
+
     const moveAlias = {
         "left":  "left",
         "l":     "left",
@@ -188,15 +185,6 @@ function processChatMessage(message) {
     if (moveAlias[text]) {
 
         const dir = moveAlias[text];
-        counters[dir]++;
-
-        console.log(
-            `[COUNTER] ${dir}: ${counters[dir]}`
-        );
-
-        document.getElementById(
-            `${dir}Count`
-        ).textContent = counters[dir];
 
         // Hacer que el movimiento funcione igual que
         // si se presionara una tecla en interactivity.js
