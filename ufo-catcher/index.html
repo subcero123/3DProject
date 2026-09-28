@@ -298,6 +298,27 @@
             letter-spacing: 1px;
         }
 
+        .sidebar .esp32-section {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .esp32-section .btn {
+            display: inline-block;
+        }
+
+        .esp32-section .esp32-hint {
+            font-size: 10px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .sidebar {
             width: 10%;
             min-width: 180px;
@@ -543,6 +564,15 @@
             <div id="status">Not connected</div>
         </div>
 
+        <div class="esp32-section">
+            <button class="btn" id="btnEsp32">Connect to ESP32</button>
+            <div class="connection-status">
+                <span class="status-dot" id="esp32StatusDot"></span>
+                <span id="esp32StatusLabel">Not connected</span>
+            </div>
+            <div class="esp32-hint" id="esp32Hint">COM3 @ 115200</div>
+        </div>
+
         <h2>Settings</h2>
 
         <!-- Printer IP -->
@@ -590,5 +620,6 @@
     <script src="js/websocket.js"></script>
     <script src="js/interactivity.js"></script>
     <script src="js/twitch.js"></script>
+    <script src="js/esp32.js"></script>
 </body>
 </html>
