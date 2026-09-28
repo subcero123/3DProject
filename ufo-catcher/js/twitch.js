@@ -1,6 +1,9 @@
 const CLIENT_ID = "x8i6aj0bx5dwwdu6dbg4ix6bkq680r";
 const REDIRECT_URI = "http://localhost:3000/ufo-catcher/";
 
+/* Puntos que cuesta el comando beep */
+const BEEP_COST = 100;
+
 const connectButton = document.getElementById("connectTwitch");
 const status = document.getElementById("status");
 
@@ -164,13 +167,14 @@ function sendChatMessage(text) {
 // 4. PROCESAR MENSAJES
 // ========================================
 
-function processChatMessage(message) {
+async function processChatMessage(message) {
 
     // Los mensajes normales de chat contienen PRIVMSG
 
     if (!message.includes("PRIVMSG")) {
         return;
     }
+
 
     // Ejemplo que envía Twitch:
     //
@@ -260,14 +264,56 @@ function processChatMessage(message) {
             return;
         }
 
+        // El beep es de pago: se descuentan los puntos del jugador
+
+        const spend = spendPoints(username, BEEP_COST);
+
+        if (!spend.ok) {
+
+            logMessage(
+                `<span style="color:#e94560;font-weight:bold">${username}</span> ` +
+                `needs ${BEEP_COST} points to beep (balance: ${spend.total})`
+            );
+
+            sendChatMessage(
+                `@${username}, you need ${BEEP_COST} points to beep, ` +
+                `but you only have ${spend.total}.`
+            );
+
+            return;
+        }
+
         const gcode = [
             "M300 S880 P150 ; Play a high-pitch tone for 150ms",
             "G4 P150        ; Dwell/pause for 150ms",
             "M300 S880 P150 ; Play a second tone",
         ].join("\n");
 
-        logMessage("Sending beep g-code:");
-        sendToPrinter(gcode);
+        const result = await sendToPrinter(gcode);
+
+        // Si el beep no llegó a la impresora se devuelven los puntos
+
+        if (!result) {
+
+            addPoints(username, BEEP_COST);
+
+            logMessage(
+                `<span style="color:#e94560;font-weight:bold">${username}</span> ` +
+                `beep failed, ${BEEP_COST} points refunded`
+            );
+
+            return;
+        }
+
+        logMessage(
+            `<span style="color:#e94560;font-weight:bold">${username}</span> ` +
+            `spent ${BEEP_COST} points on a beep (balance: ${spend.total})`
+        );
+
+        sendChatMessage(
+            `@${username}, you spent ${BEEP_COST} points on a beep! ` +
+            `Balance: ${spend.total} points.`
+        );
     }
 }
 
@@ -314,15 +360,18 @@ function handleEsp32Win() {
         return;
     }
 
+    const total = addPoints(lastGrabber, points);
+
     logMessage(
         `<span style="color:#e94560;font-weight:bold">ESP32</span> ` +
         `<span style="color:#e94560;font-weight:bold">${lastGrabber}</span> ` +
-        `caught a prize! Congrats, you won ${points} points!`
+        `caught a prize! Congrats, you won ${points} points! ` +
+        `Total: ${total}`
     );
 
     sendChatMessage(
         `@${lastGrabber}, congratulations! ` +
-        `You just won ${points} points!`
+        `You just won ${points} points! Total: ${total} points.`
     );
 }
 

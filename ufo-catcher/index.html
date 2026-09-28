@@ -245,10 +245,32 @@
             border: 1px solid #e0e0e0;
             border-radius: 6px;
             padding: 10px;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             font-size: 13px;
             color: #444;
+        }
+
+        .log-panel .log-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .log-panel .log-header .label {
+            font-size: 11px;
+            color: #444;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .log-panel .log-entries {
+            flex: 1;
+            overflow-y: auto;
             line-height: 1.6;
+            padding-right: 4px;
         }
 
         .log-panel .entry {
@@ -441,6 +463,12 @@
             width: 100%;
         }
 
+        .btn.mini {
+            padding: 3px 8px;
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+
         /* --- Status indicator --- */
         .status-dot {
             display: inline-block;
@@ -530,9 +558,15 @@
 
             <!-- Command history -->
             <div class="log-panel" id="logPanel">
-                <div class="entry">
-                    <span class="time">--:--:--</span>
-                    <span>Waiting for input...</span>
+                <div class="log-header">
+                    <span class="label">History</span>
+                    <button class="btn mini" id="btnClearLog">Clear</button>
+                </div>
+                <div class="log-entries" id="logEntries">
+                    <div class="entry">
+                        <span class="time">--:--:--</span>
+                        <span>Waiting for input...</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -621,6 +655,7 @@
     <script src="js/printer.js"></script>
     <script src="js/websocket.js"></script>
     <script src="js/interactivity.js"></script>
+    <script src="js/scores.js"></script>
     <script src="js/twitch.js"></script>
     <script src="js/esp32.js"></script>
 </body>

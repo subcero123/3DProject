@@ -17,8 +17,9 @@ const KEY_MAP = {
 const activeKeys = new Set();
 const moveIntervals = new Map();
 const REPEAT_MS = 300;
-const logPanel = document.getElementById('logPanel');
+const logPanel = document.getElementById('logEntries');
 const centerDot = document.getElementById('centerDot');
+const btnClearLog = document.getElementById('btnClearLog');
 
 /* ===== CLAW BUTTON ===== */
 const btnClaw = document.getElementById('btn-claw');
@@ -185,6 +186,14 @@ function logMessage(msg) {
     while (logPanel.children.length > 50) {
         logPanel.removeChild(logPanel.firstChild);
     }
+}
+
+/* ===== CLEAR LOG ===== */
+if (btnClearLog) {
+    btnClearLog.addEventListener('click', () => {
+        logPanel.innerHTML = '';
+        logMessage('History cleared');
+    });
 }
 
 /* ===== SETTINGS HANDLERS ===== */
