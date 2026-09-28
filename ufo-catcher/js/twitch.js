@@ -7,6 +7,10 @@ const status = document.getElementById("status");
 let twitchAccessToken = null;
 let twitchUser = null;
 let chatSocket = null;
+let chatChannel = null;
+
+let lastGrabber = null;
+let winCredited = false;
 
 
 // ========================================
@@ -23,7 +27,7 @@ connectButton.addEventListener("click", () => {
         response_type: "token",
         client_id: CLIENT_ID,
         redirect_uri: REDIRECT_URI,
-        scope: "chat:read",
+        scope: "chat:read chat:edit",
         state: state
     });
 
@@ -67,6 +71,8 @@ async function getTwitchUser(accessToken) {
 function connectToChat(channel) {
 
     console.log(`Connecting to chat #${channel}...`);
+
+    chatChannel = channel;
 
     chatSocket = new WebSocket(
         "wss://irc-ws.chat.twitch.tv:443"
@@ -114,10 +120,43 @@ function connectToChat(channel) {
 
     chatSocket.onclose = () => {
 
+        chatChannel = null;
+
         console.log(
             "WebSocket closed"
         );
     };
+}
+
+
+// ========================================
+// 5. ENVIAR MENSAJES AL CHAT
+// ========================================
+
+function sendChatMessage(text) {
+
+    if (!chatSocket ||
+        chatSocket.readyState !== WebSocket.OPEN ||
+        !chatChannel) {
+
+        console.log(
+            "Message not sent (chat disconnected):",
+            text
+        );
+
+        return false;
+    }
+
+    chatSocket.send(
+        `PRIVMSG #${chatChannel} :${text}`
+    );
+
+    console.log(
+        "Message sent:",
+        text
+    );
+
+    return true;
 }
 
 
@@ -208,6 +247,9 @@ function processChatMessage(message) {
                text === "agarrar" ||
                text === "g") {
 
+        // El premio del ESP32 se acredita a quien pidió el grab
+        registerGrabber(username);
+
         grab();
 
     } else if (text === "beep" ||
@@ -231,7 +273,62 @@ function processChatMessage(message) {
 
 
 // ========================================
-// 5. PROCESAR OAUTH
+// 6. PREMIOS DETECTADOS POR EL ESP32
+// ========================================
+
+// El ESP32 manda "0" cuando atrapa un premio:
+// el ganador es el último usuario que pidió el grab
+
+function registerGrabber(username) {
+
+    lastGrabber = username;
+    winCredited = false;
+}
+
+
+// Lo llama esp32.js cuando el ESP32 reporta un "0"
+
+function handleEsp32Win() {
+
+    const points =
+        typeof ESP32_WIN_POINTS === "number"
+            ? ESP32_WIN_POINTS
+            : 100;
+
+    // Evita repetir el premio si el ESP32 sigue reportando el mismo 0
+
+    if (winCredited) {
+        console.log("ESP32 win already credited, ignoring");
+        return;
+    }
+
+    winCredited = true;
+
+    if (!lastGrabber) {
+
+        logMessage(
+            `<span style="color:#e94560;font-weight:bold">ESP32</span> ` +
+            `A prize was caught! (nobody asked for the grab)`
+        );
+
+        return;
+    }
+
+    logMessage(
+        `<span style="color:#e94560;font-weight:bold">ESP32</span> ` +
+        `<span style="color:#e94560;font-weight:bold">${lastGrabber}</span> ` +
+        `caught a prize! Congrats, you won ${points} points!`
+    );
+
+    sendChatMessage(
+        `@${lastGrabber}, congratulations! ` +
+        `You just won ${points} points!`
+    );
+}
+
+
+// ========================================
+// 7. PROCESAR OAUTH
 // ========================================
 
 async function handleOAuthCallback() {

@@ -39,6 +39,12 @@ function logEsp32Event(message) {
 
 /* The only thing written to the command history is a win */
 function logEsp32Win() {
+    // twitch.js knows who asked for the grab, so it credits the winner
+    if (typeof handleEsp32Win === 'function') {
+        handleEsp32Win();
+        return;
+    }
+
     if (typeof logMessage !== 'function') return;
     logMessage(
         `<span style="color:#e94560;font-weight:bold">ESP32</span> ` +
