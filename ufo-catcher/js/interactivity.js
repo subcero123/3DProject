@@ -66,7 +66,7 @@ const stepInput       = document.getElementById('stepInput');
 /* ===== START GAME (Twitch interaction window) ===== */
 const btnStartGame = document.getElementById('btnStartGame');
 const gameStatus   = document.getElementById('gameStatus');
-const GAME_DURATION_MS = 60 * 1000; // 1 minute
+const GAME_DURATION_MS = 120 * 1000; // 1 minute
 let gameActive = false;
 let gameTimer = null;
 let gameCountdown = null;
